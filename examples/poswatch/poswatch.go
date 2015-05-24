@@ -1,6 +1,6 @@
 // poswatch.go
 //
-// Monitor PiBaHeAlTas and report it as it updates.
+// Monitor PiBaHeAlTas and report its values once it starts udpating
 
 package main
 
@@ -71,7 +71,7 @@ func main() {
 
 	for {
 		if (dataValid) {
-			// do some quick and dirty corrections...
+			// do some quick and dirty conversions...
 			pitchDeg := pitch * 180.0 / math.Pi
 			bankDeg := bank * 180.0 / math.Pi
 			headingDeg := heading * 180.0 / math.Pi
