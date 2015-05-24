@@ -21,14 +21,14 @@ var (
 )
 
 const (
-	ConnPhaseDisconnected = iota
-	ConnPhaseNew
-	ConnPhaseLoad1 
-	ConnPhaseLoad2
-	ConnPhaseRunning
-	ConnPhaseFailed
-	ConnPhaseEnded
-	ConnPhaseListenerExited
+	connPhaseDisconnected = iota
+	connPhaseNew
+	connPhaseLoad1 
+	connPhaseLoad2
+	connPhaseRunning
+	connPhaseFailed
+	connPhaseEnded
+	connPhaseListenerExited
 )
 
 // MessageHooks are used for all callbacks from PSXConn's listener.
@@ -87,7 +87,7 @@ func NewConnection(server, myName string) (pconn *PSXConn, err error) {
 	pconn = new(PSXConn)
 	pconn.lex = NewLexicon()
 	pconn.notify = make([]string, 0)
-	pconn.connPhase = ConnPhaseDisconnected
+	pconn.connPhase = connPhaseDisconnected
 	pconn.Hooks = make(map[string] MessageHook, 0)
 
 	pconn.Server = server
@@ -111,7 +111,7 @@ func (pconn *PSXConn) Connect() (err error) {
 	if (nil != pconn.conn) {
 		return
 	}
-	if (pconn.connPhase != ConnPhaseListenerExited && pconn.connPhase != ConnPhaseDisconnected) {
+	if (pconn.connPhase != connPhaseListenerExited && pconn.connPhase != connPhaseDisconnected) {
 		return ConnectionBusyError
 	}
 
@@ -124,7 +124,7 @@ func (pconn *PSXConn) Connect() (err error) {
 		pconn.conn = nil
 		return err
 	}
-	pconn.connPhase = ConnPhaseNew
+	pconn.connPhase = connPhaseNew
 	// disable nagle explicitly - it may be the defined default, but we really want it off.
 	pconn.conn.SetNoDelay(true)
 
@@ -232,21 +232,21 @@ func (pconn *PSXConn) Listener() {
 			// if we were a new connection, we were unable
 			// to send notify requests until now - subscribe to our
 			// desired messages.
-			if (pconn.connPhase == ConnPhaseNew) {
+			if (pconn.connPhase == connPhaseNew) {
 				pconn.sendNotify()
 			}
-			pconn.connPhase = ConnPhaseLoad1
+			pconn.connPhase = connPhaseLoad1
 		case "load2":
-			pconn.connPhase = ConnPhaseLoad2
+			pconn.connPhase = connPhaseLoad2
 		case "load3":
-			pconn.connPhase = ConnPhaseRunning
+			pconn.connPhase = connPhaseRunning
 		case "exit":
-			pconn.connPhase = ConnPhaseEnded
+			pconn.connPhase = connPhaseEnded
 		default:
 			if (!msg.HasValue) {
 				break;
 			}
-			if pconn.connPhase == ConnPhaseNew && msg.GetKey()[0] == 'L' {
+			if pconn.connPhase == connPhaseNew && msg.GetKey()[0] == 'L' {
 				pconn.lex.Parse(msg)
 			}
 		}
@@ -255,10 +255,10 @@ func (pconn *PSXConn) Listener() {
 		pconn.callHook(msg.GetDecodedKey(pconn.lex), msg)
 	}
 	if (err != nil) {
-		pconn.connPhase = ConnPhaseFailed
+		pconn.connPhase = connPhaseFailed
 	}
 	pconn.Disconnect()
-	pconn.connPhase = ConnPhaseListenerExited;
+	pconn.connPhase = connPhaseListenerExited;
 }
 
 // Initialise a message given the human readable key/value pair
