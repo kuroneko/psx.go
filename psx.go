@@ -190,7 +190,6 @@ func (pconn *PSXConn) sendLine(line string) (err error) {
 	return nil
 }
 
-
 // The Listner needs to be started AFTER Connect() has been invoked.
 //
 // It can be started in it's own goroutine, or in the current one depending on
@@ -268,4 +267,14 @@ func (pconn *PSXConn) NewPair(humanKey, value string) (msg *WireMsg) {
 	msg.HasValue = true
 	msg.Value = value
 	return msg
+}
+
+// Add the named Q variable to the filter
+func (pconn *PSXConn) Subscribe(humanKey string) {
+	for _, k := range pconn.notify {
+		if k == humanKey {
+			return
+		}
+	}
+	pconn.notify = append(pconn.notify, humanKey)
 }

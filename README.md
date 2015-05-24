@@ -29,8 +29,8 @@ the API:
    Variables.txt) for code readability reasons.  This translation cannot
    be trusted to occur before `load1` is received from the simulator.
 
- * We speak SwitchPSX/Router extensions.  Notify is in there, but the 
-   API bits aren't in place just yet
+ * We speak the SwitchPSX/Router extensions, including Notify.  Be sure
+   to use the lexicon names, not the Q names when subscribing.
 
  * psx.go is threadsafe.  Just make sure you only ever start one Listener
    per PSXConn.
