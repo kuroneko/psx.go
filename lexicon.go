@@ -7,18 +7,18 @@ import (
 )
 
 var (
-	DuplicateNameError = errors.New("Lexicon Name Already Registered")
-	DuplicateIndexError = errors.New("Lexicon Index Already Registered")
-	LexiconSyntaxError = errors.New("Lexicon Line Has Invalid Syntax")
+	DuplicateNameError = errors.New("lexicon Name Already Registered")
+	DuplicateIndexError = errors.New("lexicon Index Already Registered")
+	lexiconSyntaxError = errors.New("lexicon Line Has Invalid Syntax")
 	NotAQStringError = errors.New("Line cannot be decoded - not a Q string")
 	QStringSyntaxError = errors.New("Malformed Q String")
 	UnknownIndexError = errors.New("Index not known to lexicon")
 )
 
 const (
-	MsgTypeI = iota
-	MsgTypeS
-	MsgTypeH
+	MsgTypeI = iota 		// Integer Parameter (Qi)
+	MsgTypeS 			// String Parameter (Qs)
+	MsgTypeH 			// Human Paramter (Qh)
 )
 
 const (
@@ -39,7 +39,11 @@ const (
 	MsgModeDemand			// (N)
 )
 
-// represents a whole lexicon mapping so it can be indexed for faster lookup
+// MessageDef defines a single term in the Precision Simulator lexicon.
+//
+// A MessageDef contains the information you need to map the name to and from
+// it's number (Index) as well as the information given to us about its
+// update mode.
 type MessageDef struct {
 	MessageType	int	// one of the MsgType constants reflecting the RHS format.
 	MessageMode	int 	// onde of the MsgMode constants reflecting the update frequency/type
@@ -60,16 +64,16 @@ func (msgdef *MessageDef) KeyString() string {
 	return ""
 }
 
-// parse a raw Lexicon Line from a server into a defintion.
-func ParseLexicon(lexMsg *WireMsg) (msgdef *MessageDef, err error) {
+// parse a raw lexicon Line from a server into a defintion.
+func parseLexicon(lexMsg *WireMsg) (msgdef *MessageDef, err error) {
 	msgdef = new(MessageDef)
 	key := lexMsg.GetKey()
 	if key[0] != 'L' {
-		return nil, LexiconSyntaxError
+		return nil, lexiconSyntaxError
 	}
 	// must be at least 6 charts long for the L + type (2 chars), the index (1 char min) and mode suffix (3 chars).
 	if len(key) < 6 {
-		return nil, LexiconSyntaxError
+		return nil, lexiconSyntaxError
 	}
 	// parse type.
 	// naive parse should be enough.
@@ -81,12 +85,12 @@ func ParseLexicon(lexMsg *WireMsg) (msgdef *MessageDef, err error) {
 	case 'h':
 		msgdef.MessageType = MsgTypeH
 	default:
-		return nil, LexiconSyntaxError
+		return nil, lexiconSyntaxError
 	}
 	// now, split out the number
 	suffixIdx := strings.Index(key, "(")
 	if (suffixIdx < 0) {
-		return nil, LexiconSyntaxError
+		return nil, lexiconSyntaxError
 	}
 	msgdef.Index, err = strconv.Atoi(key[2:suffixIdx])
 	if (err != nil) {
@@ -125,24 +129,24 @@ func ParseLexicon(lexMsg *WireMsg) (msgdef *MessageDef, err error) {
 	case 'N':
 		msgdef.MessageMode = MsgModeDemand
 	default:
-		return nil, LexiconSyntaxError
+		return nil, lexiconSyntaxError
 	}
 	msgdef.HumanName = lexMsg.Value
 	return msgdef, nil
 }
 
-// A Lexicon holds the data necessary to dynamically learn and map the PSX 
+// A lexicon holds the data necessary to dynamically learn and map the PSX 
 // lexicon for Qi/Qh/Qs messages so we can use the human names internally
 //
 // This allows for (hopefully) less painful to read code.
-type Lexicon struct {
+type lexicon struct {
 	forward 	map[string] *MessageDef	// forward lookup stores the Qh/Qs/Qi to messagedef map
 	reverse		map[string] *MessageDef // reverse lookup stores the humanName to Qh/Qs/Qi map
 }
 
 // initialise a new, empty, lexicon ready to be filled with mappings
-func NewLexicon() (lex *Lexicon) {
-	lex = new(Lexicon);
+func newLexicon() (lex *lexicon) {
+	lex = new(lexicon);
 	lex.forward = make(map[string] *MessageDef, 0)
 	lex.reverse = make(map[string] *MessageDef, 0)
 
@@ -151,7 +155,7 @@ func NewLexicon() (lex *Lexicon) {
 
 // Finds the Q key for a given named paramater.  returns the empty string
 // if it can't find it.
-func (lex *Lexicon) KeyFor(humanName string) string {
+func (lex *lexicon) keyFor(humanName string) string {
 	def, found := lex.reverse[humanName]
 	if (found) {
 		return def.KeyString()
@@ -162,7 +166,7 @@ func (lex *Lexicon) KeyFor(humanName string) string {
 
 // given a Qstring, find the human name.  returns the empty string if it can't
 // find the mapping.
-func (lex *Lexicon) HumanNameFor(keyName string) string {
+func (lex *lexicon) humanNameFor(keyName string) string {
 	def, found := lex.forward[keyName]
 	if (found) {
 		return def.HumanName
@@ -171,8 +175,8 @@ func (lex *Lexicon) HumanNameFor(keyName string) string {
 	}	
 }
 
-func (lex *Lexicon) Parse(msgIn *WireMsg) (err error) {
-	md, err := ParseLexicon(msgIn)
+func (lex *lexicon) parse(msgIn *WireMsg) (err error) {
+	md, err := parseLexicon(msgIn)
 	if (err != nil) {
 		return err
 	}

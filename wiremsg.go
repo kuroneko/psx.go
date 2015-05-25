@@ -7,8 +7,13 @@ import (
 
 // Represents a single message off the wire from the server
 //
-// Construct an empty WireMsg using NewWireMsg() or construct it from a line
-// of protocol using ParseMsg().
+// Construct an empty WireMsg using Connection.NewWireMsg().
+//
+// When a message is received, Connection will construct it and hand it to
+// the callback.
+//
+// Some values have to be manipualted by getter-setter (such as the Key name)
+// in order to keep the internal state consistent.
 type WireMsg struct {
 	// Encoded (Wire) Key/Action (left hand side)
   	key   		string
@@ -19,20 +24,20 @@ type WireMsg struct {
 
 	// cached message defintion for this WireMsg
 	definition	*MessageDef
-	lexicon 	*Lexicon
+	lexicon 	*lexicon
 }
 
 // Initialise a new (blank) WireMsg
-func NewWireMsg(lexicon *Lexicon) (msg *WireMsg) {
+func newWireMsg(lex *lexicon) (msg *WireMsg) {
 	msg = new(WireMsg)
-	msg.lexicon = lexicon
+	msg.lexicon = lex
 
 	return msg
 }
 
 // Parse a line of input from the server and return it in WireMsg form
-func ParseMsg(lex *Lexicon, line string) (msg *WireMsg) {
-	msg = NewWireMsg(lex)
+func parseMsg(lex *lexicon, line string) (msg *WireMsg) {
+	msg = newWireMsg(lex)
 	msg.Parse(line)
 	return msg
 
@@ -138,4 +143,14 @@ func (msg *WireMsg) ValueAtSubIndex(idx int) (val string, found bool) {
 		return "", false
 	}
 	return parts[idx], true
+}
+
+// Return the definition for this message type (based upon Key)
+func (msg *WireMsg) GetDefinition() *MessageDef {
+	if (msg.definition == nil && msg.lexicon != nil) {
+		// if we don't have a definition link, relink now so any new
+		// defination possiblities can be found
+		msg.relinkKey()
+	}
+	return msg.definition
 }

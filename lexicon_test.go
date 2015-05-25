@@ -5,8 +5,8 @@ import (
 )
 
 func TestLexiconParserK(t *testing.T) {
-	msg := ParseMsg(nil, "Lh402(K)=KeybCduC")
-	md, err := ParseLexicon(msg)
+	msg := parseMsg(nil, "Lh402(K)=KeybCduC")
+	md, err := parseLexicon(msg)
 	if (err != nil) {
 		t.Fatalf("Failed to parse with error: %s", err)
 	}
@@ -28,8 +28,8 @@ func TestLexiconParserK(t *testing.T) {
 }
 
 func TestLexiconParserZ(t *testing.T) {
-	msg := ParseMsg(nil, "Li242(Z)=UplinkBits")
-	md, err := ParseLexicon(msg)
+	msg := parseMsg(nil, "Li242(Z)=UplinkBits")
+	md, err := parseLexicon(msg)
 	if (err != nil) {
 		t.Fatalf("Failed to parse with error: %s", err)
 	}
@@ -51,8 +51,8 @@ func TestLexiconParserZ(t *testing.T) {
 }
 
 func TestKeystring(t *testing.T) {
-	msg := ParseMsg(nil, "Lh402(K)=KeybCduC")
-	md, _ := ParseLexicon(msg)
+	msg := parseMsg(nil, "Lh402(K)=KeybCduC")
+	md, _ := parseLexicon(msg)
 	if md == nil {
 		t.SkipNow()
 	}
@@ -63,21 +63,21 @@ func TestKeystring(t *testing.T) {
 }
 
 func TestLexicon(t *testing.T) {
-	lex := NewLexicon()
-	err := lex.Parse(ParseMsg(nil, "Lh402(K)=KeybCduC"))
+	lex := newLexicon()
+	err := lex.parse(parseMsg(nil, "Lh402(K)=KeybCduC"))
 	if (err != nil) {
 		t.Fatalf("Couldn't add Lexicon Line: %s", err)
 	}
-	err = lex.Parse(ParseMsg(nil, "Li242(Z)=UplinkBits"))
+	err = lex.parse(parseMsg(nil, "Li242(Z)=UplinkBits"))
 	if (err != nil) {
 		t.Fatalf("Couldn't add Lexicon Line: %s", err)
 	}
 
-	msg := ParseMsg(lex, "Qh402=34")
+	msg := parseMsg(lex, "Qh402=34")
 	t.Logf("Decoded Msg: %s", msg)
 	t.Logf("Wire Msg: %s", msg.WireString())
-	if (msg.GetDecodedKey(nil) != "KeybCduC") {
-		t.Errorf("Got unexpected key name: %s", msg.GetDecodedKey(nil))
+	if (msg.GetDecodedKey() != "KeybCduC") {
+		t.Errorf("Got unexpected key name: %s", msg.GetDecodedKey())
 	}
 	if (!msg.HasValue) {
 		t.Error("WirePair didn't detect value in string")
@@ -91,18 +91,18 @@ func TestLexicon(t *testing.T) {
 }
 
 func TestLexiconEncode(t *testing.T) {
-	lex := NewLexicon()
-	err := lex.Parse(ParseMsg(nil, "Lh402(K)=KeybCduC"))
+	lex := newLexicon()
+	err := lex.parse(parseMsg(nil, "Lh402(K)=KeybCduC"))
 	if (err != nil) {
 		t.Fatalf("Couldn't add Lexicon Line: %s", err)
 	}
-	err = lex.Parse(ParseMsg(nil, "Li242(Z)=UplinkBits"))
+	err = lex.parse(parseMsg(nil, "Li242(Z)=UplinkBits"))
 	if (err != nil) {
 		t.Fatalf("Couldn't add Lexicon Line: %s", err)
 	}
 
-	msg := NewWireMsg();
-	msg.SetDecodedKey(lex, "UplinkBits");
+	msg := newWireMsg(lex);
+	msg.SetDecodedKey("UplinkBits");
 	msg.HasValue = true
 	msg.Value = "42"
 

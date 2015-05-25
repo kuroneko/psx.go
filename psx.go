@@ -70,7 +70,7 @@ type Connection struct {
 
 	// internal bits
 	conn		*net.TCPConn
-	lex		*Lexicon
+	lex		*lexicon
 
 	bufReader 	*bufio.Reader
 }
@@ -85,7 +85,7 @@ func (pconn *Connection) callHook(hookName string, msg *WireMsg) {
 
 func NewConnection(server, myName string) (pconn *Connection, err error) {
 	pconn = new(Connection)
-	pconn.lex = NewLexicon()
+	pconn.lex = newLexicon()
 	pconn.notify = make([]string, 0)
 	pconn.connPhase = connPhaseDisconnected
 	pconn.Hooks = make(map[string] MessageHook, 0)
@@ -108,7 +108,7 @@ func (pconn *Connection) Version() string {
 
 /* return a new WireMsg linked to the Connection's Lexicon */
 func (pconn *Connection) NewWireMsg() *WireMsg {
-	return NewWireMsg(pconn.lex)
+	return newWireMsg(pconn.lex)
 }
 
 // Connect to the server.
@@ -161,9 +161,9 @@ func (pconn *Connection) sendName() {
 func (pconn *Connection) sendNotify() {
 	var notifyList []string = make([]string, 0)
 	for _, v := range pconn.notify {
-		keyName := pconn.lex.KeyFor(v)
+		keyName := pconn.lex.keyFor(v)
 		if keyName != "" {
-			notifyList = append(notifyList, pconn.lex.KeyFor(v))
+			notifyList = append(notifyList, pconn.lex.keyFor(v))
 		}
 	}
 	if len(notifyList) > 0 {
@@ -222,7 +222,7 @@ func (pconn *Connection) Listener() {
 		}
 
 		// fast parse the message
-		msg := ParseMsg(pconn.lex, string(rawLine))
+		msg := parseMsg(pconn.lex, string(rawLine))
 
 		
 		// all hard-coded reponses.
@@ -251,7 +251,7 @@ func (pconn *Connection) Listener() {
 				break;
 			}
 			if pconn.connPhase == connPhaseNew && msg.GetKey()[0] == 'L' {
-				pconn.lex.Parse(msg)
+				pconn.lex.parse(msg)
 			}
 		}
 		// once we've completed all of our integrated responses, we
