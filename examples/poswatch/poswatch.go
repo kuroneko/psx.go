@@ -29,7 +29,7 @@ var (
 )
 
 // Receive an update for PiBaHeAlTas
-func updatePosition(_ *psx.PSXConn, msg *psx.WireMsg) {
+func updatePosition(_ *psx.Connection, msg *psx.WireMsg) {
 	// whilst psx.WireMsg may provide ValueAtSubIndex, it's more 
 	// efficient to use Split if we're using all the values.
 	msgParts := strings.Split(msg.Value, ";")
@@ -45,7 +45,7 @@ func updatePosition(_ *psx.PSXConn, msg *psx.WireMsg) {
 	dataValid = true
 }
 
-func connectionLoop(pconn *psx.PSXConn) {
+func connectionLoop(pconn *psx.Connection) {
 	for {
 		err := pconn.Connect()
 		if (err != nil) {

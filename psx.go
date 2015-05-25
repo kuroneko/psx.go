@@ -16,7 +16,7 @@ var (
 	// Returned when actions that require a live server connection are
 	// called against a closed connection
 	NotConnectedError = errors.New("Connection is not currently open")
-	// Returned when the PSXConn can't reconnect yet as the worker is still live.
+	// Returned when the Connection can't reconnect yet as the worker is still live.
 	ConnectionBusyError = errors.New("Connection is still busy and unable to reconnect")
 )
 
@@ -31,22 +31,22 @@ const (
 	connPhaseListenerExited
 )
 
-// MessageHooks are used for all callbacks from PSXConn's listener.
+// MessageHooks are used for all callbacks from Connection's listener.
 //
-// The PSXConn is passed through pconn, and the message that triggered the
+// The Connection is passed through pconn, and the message that triggered the
 // callback is passed in msg.
-type MessageHook func(pconn *PSXConn, msg *WireMsg)
+type MessageHook func(pconn *Connection, msg *WireMsg)
 
-// PSXConn manages the connection to Precision Simulator X and holds all the
+// Connection manages the connection to Precision Simulator X and holds all the
 // configuration.
 //
-// Use NewConnection to initialise a new PSXConn.
+// Use NewConnection to initialise a new Connection.
 //
 // Server, ClientName and InstanceName can all be changed after initialisation
 // but will not be reported to the server whilst the connection is active.
 //
 // 
-type PSXConn struct {
+type Connection struct {
 	// Hostname & Port to connect to 
 	Server		string
 	// Name of the client to report to Router/SwitchPSX
@@ -76,15 +76,15 @@ type PSXConn struct {
 }
 
 // invoke the callback with name hookName.
-func (pconn *PSXConn) callHook(hookName string, msg *WireMsg) {
+func (pconn *Connection) callHook(hookName string, msg *WireMsg) {
 	callback, found := pconn.Hooks[hookName]
 	if found && callback != nil {
 		callback(pconn, msg)
 	}
 }
 
-func NewConnection(server, myName string) (pconn *PSXConn, err error) {
-	pconn = new(PSXConn)
+func NewConnection(server, myName string) (pconn *Connection, err error) {
+	pconn = new(Connection)
 	pconn.lex = NewLexicon()
 	pconn.notify = make([]string, 0)
 	pconn.connPhase = connPhaseDisconnected
@@ -97,17 +97,17 @@ func NewConnection(server, myName string) (pconn *PSXConn, err error) {
 }
 
 // Returns the ID as assigned by the server/router
-func (pconn *PSXConn) Id() int {
+func (pconn *Connection) Id() int {
 	return pconn.myId
 }
 
 // Returns the Software Version as reported by the server
-func (pconn *PSXConn) Version() string {
+func (pconn *Connection) Version() string {
 	return pconn.version
 }
 
 // Connect to the server.
-func (pconn *PSXConn) Connect() (err error) {
+func (pconn *Connection) Connect() (err error) {
 	if (nil != pconn.conn) {
 		return
 	}
@@ -132,7 +132,7 @@ func (pconn *PSXConn) Connect() (err error) {
 }
 
 // Disconnect from the server.
-func (pconn *PSXConn) Disconnect() {
+func (pconn *Connection) Disconnect() {
 	if (nil == pconn.conn) {
 		return;
 	}
@@ -143,7 +143,7 @@ func (pconn *PSXConn) Disconnect() {
 }
 
 // send our identity (name)
-func (pconn *PSXConn) sendName() {
+func (pconn *Connection) sendName() {
 	nameOut := pconn.ClientName
 	if (pconn.InstanceName != "") {
 		nameOut += ";" + pconn.InstanceName
@@ -153,7 +153,7 @@ func (pconn *PSXConn) sendName() {
 }
 
 // send our notify message.
-func (pconn *PSXConn) sendNotify() {
+func (pconn *Connection) sendNotify() {
 	var notifyList []string = make([]string, 0)
 	for _, v := range pconn.notify {
 		keyName := pconn.lex.KeyFor(v)
@@ -166,11 +166,11 @@ func (pconn *PSXConn) sendNotify() {
 	}
 }
 
-func (pconn *PSXConn) SendMsg(msg *WireMsg) (err error) {
+func (pconn *Connection) SendMsg(msg *WireMsg) (err error) {
 	return pconn.sendLine(msg.WireString())
 }
 
-func (pconn *PSXConn) sendLine(line string) (err error) {
+func (pconn *Connection) sendLine(line string) (err error) {
 	if nil == pconn.conn {
 		return NotConnectedError
 	}
@@ -194,7 +194,7 @@ func (pconn *PSXConn) sendLine(line string) (err error) {
 //
 // It can be started in it's own goroutine, or in the current one depending on
 // requirements, but is generally intended to run in its own goroutine.
-func (pconn *PSXConn) Listener() {
+func (pconn *Connection) Listener() {
 	var err error = nil
 	running := true
 	pconn.bufReader = bufio.NewReader(pconn.conn)
@@ -261,7 +261,7 @@ func (pconn *PSXConn) Listener() {
 }
 
 // Initialise a message given the human readable key/value pair
-func (pconn *PSXConn) NewPair(humanKey, value string) (msg *WireMsg) {
+func (pconn *Connection) NewPair(humanKey, value string) (msg *WireMsg) {
 	msg = NewWireMsg()
 	msg.SetDecodedKey(pconn.lex, humanKey)
 	msg.HasValue = true
@@ -270,7 +270,7 @@ func (pconn *PSXConn) NewPair(humanKey, value string) (msg *WireMsg) {
 }
 
 // Add the named Q variable to the filter
-func (pconn *PSXConn) Subscribe(humanKey string) {
+func (pconn *Connection) Subscribe(humanKey string) {
 	for _, k := range pconn.notify {
 		if k == humanKey {
 			return
