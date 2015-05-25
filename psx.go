@@ -106,6 +106,11 @@ func (pconn *Connection) Version() string {
 	return pconn.version
 }
 
+/* return a new WireMsg linked to the Connection's Lexicon */
+func (pconn *Connection) NewWireMsg() *WireMsg {
+	return NewWireMsg(pconn.lex)
+}
+
 // Connect to the server.
 func (pconn *Connection) Connect() (err error) {
 	if (nil != pconn.conn) {
@@ -217,7 +222,7 @@ func (pconn *Connection) Listener() {
 		}
 
 		// fast parse the message
-		msg := ParseMsg(nil, string(rawLine))
+		msg := ParseMsg(pconn.lex, string(rawLine))
 
 		
 		// all hard-coded reponses.
@@ -251,7 +256,7 @@ func (pconn *Connection) Listener() {
 		}
 		// once we've completed all of our integrated responses, we
 		// can attempt to use the callback hooks.
-		pconn.callHook(msg.GetDecodedKey(pconn.lex), msg)
+		pconn.callHook(msg.GetDecodedKey(), msg)
 	}
 	if (err != nil) {
 		pconn.connPhase = connPhaseFailed
@@ -262,8 +267,8 @@ func (pconn *Connection) Listener() {
 
 // Initialise a message given the human readable key/value pair
 func (pconn *Connection) NewPair(humanKey, value string) (msg *WireMsg) {
-	msg = NewWireMsg()
-	msg.SetDecodedKey(pconn.lex, humanKey)
+	msg = pconn.NewWireMsg()
+	msg.SetDecodedKey(humanKey)
 	msg.HasValue = true
 	msg.Value = value
 	return msg
