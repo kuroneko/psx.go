@@ -14,9 +14,9 @@ See COPYING
 
     func doStuff() {
         conn := psx.NewConnection("localhost:10747", "myAddon")
-	// set up stuff on conn 
-	conn.Connect()
-	conn.Listener()
+        // set up stuff on conn
+        conn.Connect()
+        conn.Listener()
     }
 
 See http://godoc.org/github.com/kuroneko/psx.go for detailed API
