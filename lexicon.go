@@ -1,42 +1,42 @@
 package psx
 
 import (
-	"strings"
-	"strconv"
 	"errors"
+	"strconv"
+	"strings"
 )
 
 var (
-	DuplicateNameError = errors.New("lexicon Name Already Registered")
+	DuplicateNameError  = errors.New("lexicon Name Already Registered")
 	DuplicateIndexError = errors.New("lexicon Index Already Registered")
-	lexiconSyntaxError = errors.New("lexicon Line Has Invalid Syntax")
-	NotAQStringError = errors.New("Line cannot be decoded - not a Q string")
-	QStringSyntaxError = errors.New("Malformed Q String")
-	UnknownIndexError = errors.New("Index not known to lexicon")
+	lexiconSyntaxError  = errors.New("lexicon Line Has Invalid Syntax")
+	NotAQStringError    = errors.New("Line cannot be decoded - not a Q string")
+	QStringSyntaxError  = errors.New("Malformed Q String")
+	UnknownIndexError   = errors.New("Index not known to lexicon")
 )
 
 const (
-	MsgTypeI = iota 		// Integer Parameter (Qi)
-	MsgTypeS 			// String Parameter (Qs)
-	MsgTypeH 			// Human Paramter (Qh)
+	MsgTypeI = iota // Integer Parameter (Qi)
+	MsgTypeS        // String Parameter (Qs)
+	MsgTypeH        // Human Paramter (Qh)
 )
 
 const (
-	MsgModeStart = iota 		// (S)
-	MsgModeCont 			// (C) ? never seen
-	MsgModeEcon 			// (E)
-	MsgModeDelta 			// (D)
-	MsgModeBigmom 			// (B)
-	MsgModeMcpmom 			// (M)
-	MsgModeGuamom2 			// (G)
-	MsgModeGuamom4 			// (F)
-	MsgModeCdukeyb 			// (K)
-	MsgModeRcp 			// (R)
-	MsgModeAcp			// (A)
-	MsgModeMixed 			// (X)
-	MsgModeXdelta 			// (Y)
-	MsgModeXecon			// (Z)
-	MsgModeDemand			// (N)
+	MsgModeStart   = iota // (S)
+	MsgModeCont           // (C) ? never seen
+	MsgModeEcon           // (E)
+	MsgModeDelta          // (D)
+	MsgModeBigmom         // (B)
+	MsgModeMcpmom         // (M)
+	MsgModeGuamom2        // (G)
+	MsgModeGuamom4        // (F)
+	MsgModeCdukeyb        // (K)
+	MsgModeRcp            // (R)
+	MsgModeAcp            // (A)
+	MsgModeMixed          // (X)
+	MsgModeXdelta         // (Y)
+	MsgModeXecon          // (Z)
+	MsgModeDemand         // (N)
 )
 
 // MessageDef defines a single term in the Precision Simulator lexicon.
@@ -45,14 +45,14 @@ const (
 // it's number (Index) as well as the information given to us about its
 // update mode.
 type MessageDef struct {
-	MessageType	int	// one of the MsgType constants reflecting the RHS format.
-	MessageMode	int 	// onde of the MsgMode constants reflecting the update frequency/type
-	Index		int	// numeric index within the given MessageType for the message
-	HumanName 	string	// the humanish display name for the item
+	MessageType int    // one of the MsgType constants reflecting the RHS format.
+	MessageMode int    // onde of the MsgMode constants reflecting the update frequency/type
+	Index       int    // numeric index within the given MessageType for the message
+	HumanName   string // the humanish display name for the item
 }
 
 func (msgdef *MessageDef) KeyString() string {
-	switch (msgdef.MessageType) {
+	switch msgdef.MessageType {
 	case MsgTypeI:
 		return "Qi" + strconv.Itoa(msgdef.Index)
 	case MsgTypeS:
@@ -77,7 +77,7 @@ func parseLexicon(lexMsg *WireMsg) (msgdef *MessageDef, err error) {
 	}
 	// parse type.
 	// naive parse should be enough.
-	switch (key[1]) {
+	switch key[1] {
 	case 'i':
 		msgdef.MessageType = MsgTypeI
 	case 's':
@@ -89,15 +89,15 @@ func parseLexicon(lexMsg *WireMsg) (msgdef *MessageDef, err error) {
 	}
 	// now, split out the number
 	suffixIdx := strings.Index(key, "(")
-	if (suffixIdx < 0) {
+	if suffixIdx < 0 {
 		return nil, lexiconSyntaxError
 	}
 	msgdef.Index, err = strconv.Atoi(key[2:suffixIdx])
-	if (err != nil) {
+	if err != nil {
 		return nil, err
 	}
 	// and the type
-	switch (key[suffixIdx+1]) {
+	switch key[suffixIdx+1] {
 	case 'S':
 		msgdef.MessageMode = MsgModeStart
 	case 'C':
@@ -135,20 +135,20 @@ func parseLexicon(lexMsg *WireMsg) (msgdef *MessageDef, err error) {
 	return msgdef, nil
 }
 
-// A lexicon holds the data necessary to dynamically learn and map the PSX 
+// A lexicon holds the data necessary to dynamically learn and map the PSX
 // lexicon for Qi/Qh/Qs messages so we can use the human names internally
 //
 // This allows for (hopefully) less painful to read code.
 type lexicon struct {
-	forward 	map[string] *MessageDef	// forward lookup stores the Qh/Qs/Qi to messagedef map
-	reverse		map[string] *MessageDef // reverse lookup stores the humanName to Qh/Qs/Qi map
+	forward map[string]*MessageDef // forward lookup stores the Qh/Qs/Qi to messagedef map
+	reverse map[string]*MessageDef // reverse lookup stores the humanName to Qh/Qs/Qi map
 }
 
 // initialise a new, empty, lexicon ready to be filled with mappings
 func newLexicon() (lex *lexicon) {
-	lex = new(lexicon);
-	lex.forward = make(map[string] *MessageDef, 0)
-	lex.reverse = make(map[string] *MessageDef, 0)
+	lex = new(lexicon)
+	lex.forward = make(map[string]*MessageDef, 0)
+	lex.reverse = make(map[string]*MessageDef, 0)
 
 	return lex
 }
@@ -157,7 +157,7 @@ func newLexicon() (lex *lexicon) {
 // if it can't find it.
 func (lex *lexicon) keyFor(humanName string) string {
 	def, found := lex.reverse[humanName]
-	if (found) {
+	if found {
 		return def.KeyString()
 	} else {
 		return ""
@@ -168,16 +168,16 @@ func (lex *lexicon) keyFor(humanName string) string {
 // find the mapping.
 func (lex *lexicon) humanNameFor(keyName string) string {
 	def, found := lex.forward[keyName]
-	if (found) {
+	if found {
 		return def.HumanName
 	} else {
 		return ""
-	}	
+	}
 }
 
 func (lex *lexicon) parse(msgIn *WireMsg) (err error) {
 	md, err := parseLexicon(msgIn)
-	if (err != nil) {
+	if err != nil {
 		return err
 	}
 	lex.reverse[md.HumanName] = md

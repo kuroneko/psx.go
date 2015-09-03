@@ -2,14 +2,14 @@
 // its addons.
 //
 // This library also supports the extensions introduced by router + switchpsx
-package psx;
+package psx
 
 import (
-	"net"
 	"bufio"
-	"strings"
-	"strconv"
 	"errors"
+	"net"
+	"strconv"
+	"strings"
 )
 
 var (
@@ -23,7 +23,7 @@ var (
 const (
 	connPhaseDisconnected = iota
 	connPhaseNew
-	connPhaseLoad1 
+	connPhaseLoad1
 	connPhaseLoad2
 	connPhaseRunning
 	connPhaseFailed
@@ -45,34 +45,34 @@ type MessageHook func(pconn *Connection, msg *WireMsg)
 // Server, ClientName and InstanceName can all be changed after initialisation
 // but will not be reported to the server whilst the connection is active.
 //
-// 
+//
 type Connection struct {
-	// Hostname & Port to connect to 
-	Server		string
+	// Hostname & Port to connect to
+	Server string
 	// Name of the client to report to Router/SwitchPSX
-	ClientName	string
+	ClientName string
 	// Name of the subinstance to report to Router/SwitchPSX
-	InstanceName	string
+	InstanceName string
 
 	// Callback Hooks.
 	//
 	// The key is the (decoded, if necessary) attribute.
-	Hooks		map[string] MessageHook
+	Hooks map[string]MessageHook
 
 	// read-only information from the server
-	myId		int 		// ID the server/router assigned us
-	version		string 		// Version info as provided by the server/router
+	myId    int    // ID the server/router assigned us
+	version string // Version info as provided by the server/router
 	// connection phase
-	connPhase 	int 		// One of the ConnPhase* constants - defines what the current connection state is
+	connPhase int // One of the ConnPhase* constants - defines what the current connection state is
 
 	// notification/subscription list for SwitchPSX
-	notify		[]string
+	notify []string
 
 	// internal bits
-	conn		*net.TCPConn
-	lex		*lexicon
+	conn *net.TCPConn
+	lex  *lexicon
 
-	bufReader 	*bufio.Reader
+	bufReader *bufio.Reader
 }
 
 // invoke the callback with name hookName.
@@ -88,7 +88,7 @@ func NewConnection(server, myName string) (pconn *Connection, err error) {
 	pconn.lex = newLexicon()
 	pconn.notify = make([]string, 0)
 	pconn.connPhase = connPhaseDisconnected
-	pconn.Hooks = make(map[string] MessageHook, 0)
+	pconn.Hooks = make(map[string]MessageHook, 0)
 
 	pconn.Server = server
 	pconn.ClientName = myName
@@ -113,19 +113,19 @@ func (pconn *Connection) NewWireMsg() *WireMsg {
 
 // Connect to the server.
 func (pconn *Connection) Connect() (err error) {
-	if (nil != pconn.conn) {
+	if nil != pconn.conn {
 		return
 	}
-	if (pconn.connPhase != connPhaseListenerExited && pconn.connPhase != connPhaseDisconnected) {
+	if pconn.connPhase != connPhaseListenerExited && pconn.connPhase != connPhaseDisconnected {
 		return ConnectionBusyError
 	}
 
 	addr, err := net.ResolveTCPAddr("tcp", pconn.Server)
-	if (err != nil) {
+	if err != nil {
 		return err
 	}
 	pconn.conn, err = net.DialTCP("tcp", nil, addr)
-	if (err != nil) {
+	if err != nil {
 		pconn.conn = nil
 		return err
 	}
@@ -138,11 +138,11 @@ func (pconn *Connection) Connect() (err error) {
 
 // Disconnect from the server.
 func (pconn *Connection) Disconnect() {
-	if (nil == pconn.conn) {
-		return;
+	if nil == pconn.conn {
+		return
 	}
 	// close the reader so we can shut down propertly.
-	pconn.sendLine("exit");
+	pconn.sendLine("exit")
 	pconn.conn.Close()
 	pconn.conn = nil
 }
@@ -150,7 +150,7 @@ func (pconn *Connection) Disconnect() {
 // send our identity (name)
 func (pconn *Connection) sendName() {
 	nameOut := pconn.ClientName
-	if (pconn.InstanceName != "") {
+	if pconn.InstanceName != "" {
 		nameOut += ";" + pconn.InstanceName
 	}
 	msgOut := pconn.NewPair("name", nameOut)
@@ -179,7 +179,7 @@ func (pconn *Connection) sendLine(line string) (err error) {
 	if nil == pconn.conn {
 		return NotConnectedError
 	}
-	var msg []byte;
+	var msg []byte
 
 	msg = []byte(line)
 	// append a CR+LF pair
@@ -209,10 +209,10 @@ func (pconn *Connection) Listener() {
 		// read the full line from the network.
 		var prefix bool = true
 		for prefix {
-			var lineSlice []byte 
+			var lineSlice []byte
 			lineSlice, prefix, err = pconn.bufReader.ReadLine()
 			if err != nil {
-				break;
+				break
 			}
 			rawLine = append(rawLine, lineSlice...)
 		}
@@ -224,9 +224,8 @@ func (pconn *Connection) Listener() {
 		// fast parse the message
 		msg := parseMsg(pconn.lex, string(rawLine))
 
-		
 		// all hard-coded reponses.
-		switch (msg.GetKey()) {
+		switch msg.GetKey() {
 		case "id":
 			pconn.myId, _ = strconv.Atoi(msg.Value)
 			pconn.sendName()
@@ -236,7 +235,7 @@ func (pconn *Connection) Listener() {
 			// if we were a new connection, we were unable
 			// to send notify requests until now - subscribe to our
 			// desired messages.
-			if (pconn.connPhase == connPhaseNew) {
+			if pconn.connPhase == connPhaseNew {
 				pconn.sendNotify()
 			}
 			pconn.connPhase = connPhaseLoad1
@@ -247,8 +246,8 @@ func (pconn *Connection) Listener() {
 		case "exit":
 			pconn.connPhase = connPhaseEnded
 		default:
-			if (!msg.HasValue) {
-				break;
+			if !msg.HasValue {
+				break
 			}
 			if pconn.connPhase == connPhaseNew && msg.GetKey()[0] == 'L' {
 				pconn.lex.parse(msg)
@@ -258,11 +257,11 @@ func (pconn *Connection) Listener() {
 		// can attempt to use the callback hooks.
 		pconn.callHook(msg.GetDecodedKey(), msg)
 	}
-	if (err != nil) {
+	if err != nil {
 		pconn.connPhase = connPhaseFailed
 	}
 	pconn.Disconnect()
-	pconn.connPhase = connPhaseListenerExited;
+	pconn.connPhase = connPhaseListenerExited
 }
 
 // Initialise a message given the human readable key/value pair

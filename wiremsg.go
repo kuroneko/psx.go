@@ -1,8 +1,8 @@
 package psx
 
 import (
-	"strings"
 	"fmt"
+	"strings"
 )
 
 // Represents a single message off the wire from the server
@@ -12,19 +12,16 @@ import (
 // When a message is received, Connection will construct it and hand it to
 // the callback.
 //
-// Some values have to be manipualted by getter-setter (such as the Key name)
+// Some values have to be manipulated by getter-setter (such as the Key name)
 // in order to keep the internal state consistent.
 type WireMsg struct {
-	// Encoded (Wire) Key/Action (left hand side)
-  	key   		string
-  	// Indicates if there's a data section (right hand side)
-	HasValue	bool
-	// Value of the data section (right hand side)
-	Value		string
+	key string // Encoded (Wire) Key/Action (left hand side)
 
-	// cached message defintion for this WireMsg
-	definition	*MessageDef
-	lexicon 	*lexicon
+	HasValue bool   // Indicates if there's a data section (right hand side)
+	Value    string // Value of the data section (right hand side)
+
+	definition *MessageDef // cached message defintion for this WireMsg
+	lexicon    *lexicon
 }
 
 // Initialise a new (blank) WireMsg
@@ -53,7 +50,7 @@ func (msg *WireMsg) relinkKey() {
 	}
 }
 
-// Populate this WireMsg with the line of network input (sans line end) 
+// Populate this WireMsg with the line of network input (sans line end)
 func (msg *WireMsg) Parse(line string) {
 	if strings.Index(line, "=") < 0 {
 		msg.HasValue = false
@@ -73,8 +70,8 @@ func (msg *WireMsg) Parse(line string) {
 //
 // Will cache the result if none exists, so you can use this (and discard
 // the value) to force a late decode
-func (msg *WireMsg) GetDecodedKey() (string) {
-	if (msg.definition == nil && msg.lexicon != nil) {
+func (msg *WireMsg) GetDecodedKey() string {
+	if msg.definition == nil && msg.lexicon != nil {
 		msg.relinkKey()
 	}
 	if msg.definition != nil {
@@ -103,8 +100,8 @@ func (msg *WireMsg) SetDecodedKey(humanName string) {
 
 // set the key without any decode attempt
 func (msg *WireMsg) SetKey(key string) {
-	if (msg.key != key) {
-		defer msg.relinkKey();
+	if msg.key != key {
+		defer msg.relinkKey()
 	}
 	msg.key = key
 }
@@ -116,7 +113,7 @@ func (msg *WireMsg) GetKey() string {
 
 // return the message, ready to send, as a string.
 func (msg *WireMsg) WireString() string {
-	if (msg.HasValue) {
+	if msg.HasValue {
 		return fmt.Sprintf("%s=%s", msg.key, msg.Value)
 	} else {
 		return msg.key
@@ -125,7 +122,7 @@ func (msg *WireMsg) WireString() string {
 
 // string format the message with the key decoded for easy logging/debug use.
 func (msg *WireMsg) String() string {
-	if (msg.HasValue) {
+	if msg.HasValue {
 		return fmt.Sprintf("%s=%s", msg.GetDecodedKey(), msg.Value)
 	} else {
 		return msg.key
@@ -139,7 +136,7 @@ func (msg *WireMsg) ValueAtSubIndex(idx int) (val string, found bool) {
 		return "", false
 	}
 	parts := strings.Split(msg.Value, ";")
-	if (idx >= len(parts)) {
+	if idx >= len(parts) {
 		return "", false
 	}
 	return parts[idx], true
@@ -147,7 +144,7 @@ func (msg *WireMsg) ValueAtSubIndex(idx int) (val string, found bool) {
 
 // Return the definition for this message type (based upon Key)
 func (msg *WireMsg) GetDefinition() *MessageDef {
-	if (msg.definition == nil && msg.lexicon != nil) {
+	if msg.definition == nil && msg.lexicon != nil {
 		// if we don't have a definition link, relink now so any new
 		// defination possiblities can be found
 		msg.relinkKey()
